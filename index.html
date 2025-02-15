@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js モデルクリック（スマホ対応）</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden;
+            background: radial-gradient(circle, #001f3f 20%, #004080 80%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            position: relative;
+        }
+        #click-text {
+            position: absolute;
+            bottom: 20px;
+            font-size: 26px;
+            font-weight: bold;
+            color: #00ccff;
+            font-family: 'Arial', sans-serif;
+            text-shadow: 2px 2px 8px rgba(0, 204, 255, 0.8);
+            animation: glow 1.5s infinite alternate;
+        }
+        @keyframes glow {
+            0% { opacity: 1; text-shadow: 2px 2px 8px rgba(0, 204, 255, 1); }
+            100% { opacity: 0.5; text-shadow: 2px 2px 15px rgba(0, 204, 255, 0.3); }
+        }
+        #whiteout {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            transition: transform 1.2s ease-out, opacity 1.2s ease-in;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="click-text">Click me!</div>
+    <div id="whiteout"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.150.1/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'https://unpkg.com/three@0.150.1/examples/jsm/controls/OrbitControls.js';
+        import { GLTFLoader } from 'https://unpkg.com/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+        adjustCamera(); // ✅ 初回のカメラ位置調整
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const light = new THREE.AmbientLight(0xffffff, 2);
+        scene.add(light);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        const loader = new GLTFLoader();
+        const modelURL = "https://raw.githubusercontent.com/SOSU2025/my-3d-models/main/aaaa.glb";
+
+        let model;
+        let originalMaterials = new Map();
+
+        loader.load(modelURL, 
+            (gltf) => {
+                model = gltf.scene;
+                model.position.set(0, -10, 0);
+                model.scale.set(15, 15, 15);
+                
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        originalMaterials.set(child, child.material.clone());
+                    }
+                });
+
+                scene.add(model);
+            },
+            undefined,
+            (error) => {
+                console.error('❌ モデルの読み込みに失敗:', error);
+            }
+        );
+
+        let isSpinning = false;
+        let spinSpeed = 0.005;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (model) model.rotation.y += spinSpeed;
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // ✅ スマホでも反応するように「タップイベント」も追加
+        function handleInteraction() {
+            if (model && !isSpinning) {
+                document.getElementById("click-text").style.display = "none";
+                isSpinning = true;
+                spinSpeed = 0.2;
+                createRingEffect();
+                createLightBeamEffect();
+                createFlashEffect();
+                startCameraShake();
+                startWhiteoutEffect();
+            }
+        }
+
+        window.addEventListener('click', handleInteraction);
+        window.addEventListener('touchstart', handleInteraction); // ✅ スマホ対応
+
+        function adjustCamera() {
+            if (window.innerWidth < 768) {
+                camera.position.set(0, 8, 40); // スマホ用に遠くする
+            } else {
+                camera.position.set(0, 5, 30); // PC用
+            }
+            camera.updateProjectionMatrix();
+        }
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            adjustCamera(); // ✅ 画面サイズ変更時にカメラを調整
+        });
+
+        function startWhiteoutEffect() {
+            const whiteout = document.getElementById("whiteout");
+            whiteout.style.opacity = "1";
+            whiteout.style.transform = "translate(-50%, -50%) scale(30)";
+            setTimeout(() => {
+                window.location.href = "https://sosu.theshop.jp/";
+            }, 1200);
+        }
+
+        function createRingEffect() {
+            const ringGeometry = new THREE.RingGeometry(5, 15, 64);
+            const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x00ccff, side: THREE.DoubleSide, transparent: true, opacity: 1 });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.position.set(0, -10, 0);
+            ring.rotation.x = Math.PI / 2;
+            scene.add(ring);
+
+            function animateRing() {
+                if (ringMaterial.opacity > 0) {
+                    ringMaterial.opacity -= 0.05;
+                    ring.scale.x += 0.15;
+                    ring.scale.y += 0.15;
+                    requestAnimationFrame(animateRing);
+                } else {
+                    scene.remove(ring);
+                }
+            }
+            animateRing();
+        }
+
+        function createLightBeamEffect() {
+            const beamGeometry = new THREE.CylinderGeometry(1, 1, 30, 32);
+            const beamMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+            const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+            beam.position.set(0, 5, 0);
+            scene.add(beam);
+
+            function animateBeam() {
+                if (beamMaterial.opacity > 0) {
+                    beamMaterial.opacity -= 0.05;
+                    beam.scale.y += 0.2;
+                    requestAnimationFrame(animateBeam);
+                } else {
+                    scene.remove(beam);
+                }
+            }
+            animateBeam();
+        }
+
+    </script>
+</body>
+</html>
