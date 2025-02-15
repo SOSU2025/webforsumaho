@@ -116,8 +116,8 @@
             }, 1200);
         }
 
-        window.addEventListener('click', triggerEffect);
-        window.addEventListener('touchstart', triggerEffect);
+        window.addEventListener('click', triggerEffect, false);
+        window.addEventListener('touchstart', triggerEffect, false);
 
         window.addEventListener('resize', () => {
             renderer.setSize(window.innerWidth, window.innerHeight);
