@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Three.js モデルクリック（スマホ対応 + リンク修正）</title>
+    <title>Three.js モデルクリック</title>
     <style>
         body { 
             margin: 0; 
@@ -29,6 +29,7 @@
             0% { opacity: 1; text-shadow: 2px 2px 8px rgba(0, 204, 255, 1); }
             100% { opacity: 0.5; text-shadow: 2px 2px 15px rgba(0, 204, 255, 0.3); }
         }
+
         #whiteout {
             position: absolute;
             top: 50%;
@@ -45,7 +46,7 @@
     </style>
 </head>
 <body>
-    <div id="click-text">Click me!</div>
+    <div id="click-text">Click or Tap me!</div>
     <div id="whiteout"></div>
 
     <script type="importmap">
@@ -63,7 +64,7 @@
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-        adjustCamera(); // ✅ 初回のカメラ位置調整
+        camera.position.set(0, 5, 30);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -79,27 +80,12 @@
         const modelURL = "https://raw.githubusercontent.com/SOSU2025/my-3d-models/main/aaaa.glb";
 
         let model;
-        let originalMaterials = new Map();
-
-        loader.load(modelURL, 
-            (gltf) => {
-                model = gltf.scene;
-                model.position.set(0, -10, 0);
-                model.scale.set(15, 15, 15);
-                
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        originalMaterials.set(child, child.material.clone());
-                    }
-                });
-
-                scene.add(model);
-            },
-            undefined,
-            (error) => {
-                console.error('❌ モデルの読み込みに失敗:', error);
-            }
-        );
+        loader.load(modelURL, (gltf) => {
+            model = gltf.scene;
+            model.position.set(0, -10, 0);
+            model.scale.set(15, 15, 15);
+            scene.add(model);
+        });
 
         let isSpinning = false;
         let spinSpeed = 0.005;
@@ -112,48 +98,32 @@
         }
         animate();
 
-        function handleInteraction(event) {
-            event.preventDefault(); // ✅ スマホのページ遷移バグ防止
+        function triggerEffect() {
             if (model && !isSpinning) {
                 document.getElementById("click-text").style.display = "none";
                 isSpinning = true;
                 spinSpeed = 0.2;
-                createRingEffect();
-                createLightBeamEffect();
-                createFlashEffect();
-                startCameraShake();
                 startWhiteoutEffect();
             }
         }
-
-        window.addEventListener('click', handleInteraction);
-        window.addEventListener('touchstart', handleInteraction); // ✅ タップ対応
-
-        function adjustCamera() {
-            if (window.innerWidth < 768) {
-                camera.position.set(0, 8, 40); // スマホ用
-            } else {
-                camera.position.set(0, 5, 30); // PC用
-            }
-            camera.updateProjectionMatrix();
-        }
-
-        window.addEventListener('resize', () => {
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            camera.aspect = window.innerWidth / window.innerHeight;
-            adjustCamera(); // ✅ 画面サイズ変更時にカメラを調整
-        });
 
         function startWhiteoutEffect() {
             const whiteout = document.getElementById("whiteout");
             whiteout.style.opacity = "1";
             whiteout.style.transform = "translate(-50%, -50%) scale(30)";
-
             setTimeout(() => {
-                window.location.href = "https://sosu.theshop.jp/"; // ✅ スマホでも確実に動作
-            }, 100); // ✅ 100msの遅延を追加（スマホのバグ回避）
+                window.location.href = "https://sosu.theshop.jp/";
+            }, 1200);
         }
 
+        window.addEventListener('click', triggerEffect);
+        window.addEventListener('touchstart', triggerEffect);
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
     </script>
 </body>
 </html>
