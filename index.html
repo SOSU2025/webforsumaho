@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Three.js モデルクリック（スマホ対応）</title>
+    <title>Three.js モデルクリック（スマホ対応 + リンク修正）</title>
     <style>
         body { 
             margin: 0; 
@@ -112,8 +112,8 @@
         }
         animate();
 
-        // ✅ スマホでも反応するように「タップイベント」も追加
-        function handleInteraction() {
+        function handleInteraction(event) {
+            event.preventDefault(); // ✅ スマホのページ遷移バグ防止
             if (model && !isSpinning) {
                 document.getElementById("click-text").style.display = "none";
                 isSpinning = true;
@@ -127,11 +127,11 @@
         }
 
         window.addEventListener('click', handleInteraction);
-        window.addEventListener('touchstart', handleInteraction); // ✅ スマホ対応
+        window.addEventListener('touchstart', handleInteraction); // ✅ タップ対応
 
         function adjustCamera() {
             if (window.innerWidth < 768) {
-                camera.position.set(0, 8, 40); // スマホ用に遠くする
+                camera.position.set(0, 8, 40); // スマホ用
             } else {
                 camera.position.set(0, 5, 30); // PC用
             }
@@ -148,49 +148,10 @@
             const whiteout = document.getElementById("whiteout");
             whiteout.style.opacity = "1";
             whiteout.style.transform = "translate(-50%, -50%) scale(30)";
+
             setTimeout(() => {
-                window.location.href = "https://sosu.theshop.jp/";
-            }, 1200);
-        }
-
-        function createRingEffect() {
-            const ringGeometry = new THREE.RingGeometry(5, 15, 64);
-            const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x00ccff, side: THREE.DoubleSide, transparent: true, opacity: 1 });
-            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-            ring.position.set(0, -10, 0);
-            ring.rotation.x = Math.PI / 2;
-            scene.add(ring);
-
-            function animateRing() {
-                if (ringMaterial.opacity > 0) {
-                    ringMaterial.opacity -= 0.05;
-                    ring.scale.x += 0.15;
-                    ring.scale.y += 0.15;
-                    requestAnimationFrame(animateRing);
-                } else {
-                    scene.remove(ring);
-                }
-            }
-            animateRing();
-        }
-
-        function createLightBeamEffect() {
-            const beamGeometry = new THREE.CylinderGeometry(1, 1, 30, 32);
-            const beamMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
-            const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-            beam.position.set(0, 5, 0);
-            scene.add(beam);
-
-            function animateBeam() {
-                if (beamMaterial.opacity > 0) {
-                    beamMaterial.opacity -= 0.05;
-                    beam.scale.y += 0.2;
-                    requestAnimationFrame(animateBeam);
-                } else {
-                    scene.remove(beam);
-                }
-            }
-            animateBeam();
+                window.location.href = "https://sosu.theshop.jp/"; // ✅ スマホでも確実に動作
+            }, 100); // ✅ 100msの遅延を追加（スマホのバグ回避）
         }
 
     </script>
